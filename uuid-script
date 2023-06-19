@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# This script will change all entries of the form /dev/mapper/* in /etc/fstab to their appropriate UUID names
+# You must have root privelages to run this script
+# Tested on RHEL 8.6
+
+clear
+
+if [ `id -u` -ne 0 ]; then                                              # Checks to see if script is run as root
+        echo "This script must be run as root" >&2                      # If it isn't, exit with error
+        exit 1
+fi
+
+cp -ip /etc/fstab /root/fstab.orig.bkp_`date "+%Y-%m-%d-%T"`		# create perm backup of the /etc/fstab file
+cp -ip /etc/fstab /root/fstab.orig.bkp					# create temp reversion file
+
+cat /etc/fstab | grep -i mapper | awk '{print $1}' >  /tmp/fstab-tmp   	# Stores all /dev/mapper entries from fstab into a file
+
+while read LINE; do                                                     # For each line in /tmp/fstab-tmp
+        UUID=`blkid | grep "$LINE" | awk '{print $2}'` 			# Sets the UUID name for that device
+        sed -i "s|${LINE}|${UUID}|" /etc/fstab            		# Changes the entry in fstab to UUID form
+done < /tmp/fstab-tmp
+
+echo ""
+
+while read LINE; do                                                     # For each line in /tmp/fstab-tmp
+        UUID1=`blkid | grep "$LINE"`					# Finds the UUID entry for that device
+	echo "$UUID1"							# Output UUIDs on screen for /dev/mapper devices 
+done < /tmp/fstab-tmp
+
+echo ""
+
+cat /etc/fstab                                                          # Outputs the new fstab file on screen
+
+echo ""
+
+echo "Please review the above and make sure the assigned UUIDs are correct"
+echo "Save changes to /etc/fstab? (y/n)"
+read RESPONSE;
+
+case "$RESPONSE" in
+        [yY]|[yY][eE][sS])                                              # If answer is yes, keep the changes to /etc/fstab
+                echo "Changes saved to /etc/fstab..."
+                rm -rf /root/fstab.orig.bkp
+                ;;
+        [nN]|[nN][oO]|"")						# If answer is no, or if the user just pressed Enter
+                echo "Aborting: Reverting changes..."			# don't save the new fstab file
+                cp -ip /root/fstab.orig.bkp /etc/fstab
+                rm -rf /root/fstab.orig.bkp
+                echo "Exiting"
+                ;;
+        *)                                                              # If answer is anything else, exit and don't save changes
+                echo "Invalid Response: Reverting changes..."		# to fstab
+                cp -ip /root/fstab.orig.bkp /etc/fstab
+                rm -rf /root/fstab.orig.bkp
+                echo "Exiting"
+                exit 1
+                ;;
+esac
+
+rm -rf /tmp/fstab-tmp
+
+echo ""
+
+echo "DONE!"
+
+echo ""
+
+## END
