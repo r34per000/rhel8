@@ -1,1 +1,1 @@
-# rhel8
+# rhel8 scripts repo
