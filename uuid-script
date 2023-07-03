@@ -17,14 +17,14 @@ cp -ip /etc/fstab /root/fstab.orig.bkp					# create temp reversion file
 cat /etc/fstab | grep -i mapper | awk '{print $1}' >  /tmp/fstab-tmp   	# Stores all /dev/mapper entries from fstab into a file
 
 while read LINE; do                                                     # For each line in /tmp/fstab-tmp
-        UUID=`blkid | grep "$LINE" | awk '{print $2}'` 			# Sets the UUID name for that device
+        UUID=`blkid | grep -w "$LINE" | awk '{print $2}'` 			# Sets the UUID name for that device
         sed -i "s|${LINE}|${UUID}|" /etc/fstab            		# Changes the entry in fstab to UUID form
 done < /tmp/fstab-tmp
 
 echo ""
 
 while read LINE; do                                                     # For each line in /tmp/fstab-tmp
-        UUID1=`blkid | grep "$LINE"`					# Finds the UUID entry for that device
+        UUID1=`blkid | grep -w "$LINE"`					# Finds the UUID entry for that device
 	echo "$UUID1"							# Output UUIDs on screen for /dev/mapper devices 
 done < /tmp/fstab-tmp
 
